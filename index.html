@@ -72,17 +72,26 @@
     }
 
     .app-header {
-      display: flex;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 108px;
+      grid-template-areas:
+        "brand qr"
+        "actions qr";
       align-items: center;
-      justify-content: space-between;
-      gap: 16px;
-      padding: 12px 20px;
+      column-gap: 16px;
+      row-gap: 8px;
+      min-height: 124px;
+      padding: 10px 16px;
       background: var(--brand);
       color: #fff;
       box-shadow: 0 2px 8px rgba(22, 30, 58, 0.18);
     }
 
     .brand {
+      grid-area: brand;
       display: flex;
       align-items: baseline;
       gap: 10px;
@@ -104,11 +113,22 @@
     }
 
     .header-actions {
+      grid-area: actions;
       display: flex;
       align-items: center;
       flex-wrap: wrap;
       justify-content: flex-end;
       gap: 8px;
+    }
+
+    .access-qr {
+      grid-area: qr;
+      align-self: start;
+      justify-self: end;
+      width: 104px;
+      height: 104px;
+      object-fit: contain;
+      image-rendering: pixelated;
     }
 
     .header-button,
@@ -1448,12 +1468,18 @@
 
     @media (max-width: 720px) {
       .app-header {
-        align-items: flex-start;
-        flex-direction: column;
+        grid-template-columns: minmax(0, 1fr) 88px;
+        column-gap: 12px;
+        padding: 8px 12px;
       }
 
       .header-actions {
         justify-content: flex-start;
+      }
+
+      .access-qr {
+        width: 84px;
+        height: 84px;
       }
 
       .panel-header {
@@ -1478,6 +1504,11 @@
     @media (max-width: 480px) {
       .app {
         padding: 8px;
+      }
+
+      .access-qr {
+        width: 72px;
+        height: 72px;
       }
 
       .circuit-content,
@@ -1512,6 +1543,11 @@
       <button class="header-button" id="periodExampleButton" type="button">PERIOD FINDING</button>
       <button class="header-button" id="clearButton" type="button">RESET</button>
     </div>
+    <img
+    class="access-qr"
+    src="data:image/png;base64,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"
+    alt="Visualizer access QR code"
+    >
   </header>
 
   <main class="app">
