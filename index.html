@@ -1266,6 +1266,15 @@
       gap: 3px;
     }
 
+    .state-vector.has-scroll-buffer {
+      padding-bottom: clamp(420px, 72vh, 640px);
+    }
+
+    .state-vector.large .basis-row {
+      content-visibility: auto;
+      contain-intrinsic-size: 19px;
+    }
+
     .basis-row {
       display: grid;
       grid-template-columns: minmax(58px, auto) minmax(88px, 1fr) minmax(98px, auto);
@@ -1281,11 +1290,22 @@
     }
 
     .basis-label {
+      display: inline-flex;
+      align-items: baseline;
+      gap: 0.75ch;
       color: var(--ink);
       font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
       font-size: 12px;
       font-weight: 700;
       white-space: nowrap;
+    }
+
+    .basis-index,
+    .marginal-index {
+      min-width: 5ch;
+      color: var(--muted);
+      font-weight: 600;
+      text-align: right;
     }
 
     .amplitude-track {
@@ -1414,6 +1434,9 @@
     }
 
     .marginal-label {
+      display: inline-flex;
+      align-items: baseline;
+      gap: 0.75ch;
       font-weight: 700;
       white-space: nowrap;
     }
@@ -1541,6 +1564,7 @@
       <button class="header-button" id="groverExampleButton" type="button">GROVER EXAMPLE</button>
       <button class="header-button" id="randomExampleButton" type="button">RANDOM CIRCUIT</button>
       <button class="header-button" id="periodExampleButton" type="button">PERIOD FINDING</button>
+      <button class="header-button" id="period31ExampleButton" type="button">PERIOD 31</button>
       <button class="header-button" id="clearButton" type="button">RESET</button>
     </div>
     <img
@@ -1749,6 +1773,7 @@
       "RX", "RY", "RZ", "U", "CNOT", "CCNOT", "CZ", "CCZ", "CP", "POSTSELECT"
     ];
     const gridMetrics = { labelWidth: 46, headerHeight: 34, cellWidth: 64, cellHeight: 56 };
+    const MAX_QUBITS = 15;
     const MAX_STEPS = 1000;
     const MAX_BLOCK_STEPS = 32;
     const GROVER_EXAMPLE_DSL = `QVIS 1.0;
@@ -1762,10 +1787,8 @@ block tH name "tH" qubits 5 steps 1 color 41 {
   H q4 @1;
 }
 
-block O name "O" qubits 5 steps 3 color 295 {
-  H q4 @1;
-  CCNOT q4 controls(q0, q1, q2, q3) @2;
-  H q4 @3;
+block O name "O" qubits 5 steps 1 color 295 {
+  CCZ q4 controls(q0, q1, q2, q3) @1;
 }
 
 block D name "D" qubits 5 steps 5 color 179 {
@@ -1801,9 +1824,21 @@ main {
 view step 4 block Gr;`;
 
     const PERIOD_FINDING_EXAMPLE_DSL = `QVIS 1.0;
-circuit qubits 7 steps 5;
+circuit qubits 7 steps 6;
 
-block CMUL2 name "×2 mod 15" qubits 7 steps 9 color 205 {
+block CMUL16 name "q0: ×¹⁶ mod 15 ≡ I" qubits 7 steps 1 color 126 {
+}
+
+block CMUL4 name "q1: ×⁴ mod 15" qubits 7 steps 6 color 46 {
+  CNOT q3 controls(q5) @1;
+  CCNOT q5 controls(q1, q3) @2;
+  CNOT q3 controls(q5) @3;
+  CNOT q4 controls(q6) @4;
+  CCNOT q6 controls(q1, q4) @5;
+  CNOT q4 controls(q6) @6;
+}
+
+block CMUL2 name "q2: ×² mod 15" qubits 7 steps 9 color 205 {
   CNOT q3 controls(q4) @1;
   CCNOT q4 controls(q2, q3) @2;
   CNOT q3 controls(q4) @3;
@@ -1813,15 +1848,6 @@ block CMUL2 name "×2 mod 15" qubits 7 steps 9 color 205 {
   CNOT q5 controls(q6) @7;
   CCNOT q6 controls(q2, q5) @8;
   CNOT q5 controls(q6) @9;
-}
-
-block CMUL4 name "×4 mod 15" qubits 7 steps 6 color 46 {
-  CNOT q3 controls(q5) @1;
-  CCNOT q5 controls(q1, q3) @2;
-  CNOT q3 controls(q5) @3;
-  CNOT q4 controls(q6) @4;
-  CCNOT q6 controls(q1, q4) @5;
-  CNOT q4 controls(q6) @6;
 }
 
 block IQFT3 name "QFT†" qubits 3 steps 9 color 287 {
@@ -1841,16 +1867,227 @@ main {
   H q1 @1;
   H q2 @1;
   X q6 @1;
-  use CMUL4 q0 @2;
-  use CMUL2 q0 @3;
-  POST(0) q3 @4;
-  POST(0) q4 @4;
-  POST(0) q5 @4;
-  POST(1) q6 @4;
-  use IQFT3 q0 @5;
+  use CMUL16 q0 @2;
+  use CMUL4 q0 @3;
+  use CMUL2 q0 @4;
+  POST(0) q3 @5;
+  POST(0) q4 @5;
+  POST(0) q5 @5;
+  POST(1) q6 @5;
+  use IQFT3 q0 @6;
 }
 
-view step 5 block IQFT3;`;
+view step 6 block IQFT3;`;
+
+    const PERIOD_FINDING_31_EXAMPLE_DSL = `QVIS 1.0;
+circuit qubits 13 steps 11;
+
+block M128 name "×⁸ mod 31" qubits 13 steps 12 color 12 {
+  CNOT q8 controls(q10) @1;
+  CCNOT q10 controls(q0, q8) @2;
+  CNOT q8 controls(q10) @3;
+  CNOT q11 controls(q12) @4;
+  CCNOT q12 controls(q0, q11) @5;
+  CNOT q11 controls(q12) @6;
+  CNOT q8 controls(q12) @7;
+  CCNOT q12 controls(q0, q8) @8;
+  CNOT q8 controls(q12) @9;
+  CNOT q9 controls(q11) @10;
+  CCNOT q11 controls(q0, q9) @11;
+  CNOT q9 controls(q11) @12;
+}
+
+block M64 name "×¹⁶ mod 31" qubits 13 steps 12 color 52 {
+  CNOT q11 controls(q12) @1;
+  CCNOT q12 controls(q1, q11) @2;
+  CNOT q11 controls(q12) @3;
+  CNOT q10 controls(q11) @4;
+  CCNOT q11 controls(q1, q10) @5;
+  CNOT q10 controls(q11) @6;
+  CNOT q9 controls(q10) @7;
+  CCNOT q10 controls(q1, q9) @8;
+  CNOT q9 controls(q10) @9;
+  CNOT q8 controls(q9) @10;
+  CCNOT q9 controls(q1, q8) @11;
+  CNOT q8 controls(q9) @12;
+}
+
+block M32 name "×⁴ mod 31" qubits 13 steps 12 color 92 {
+  CNOT q8 controls(q9) @1;
+  CCNOT q9 controls(q2, q8) @2;
+  CNOT q8 controls(q9) @3;
+  CNOT q10 controls(q12) @4;
+  CCNOT q12 controls(q2, q10) @5;
+  CNOT q10 controls(q12) @6;
+  CNOT q8 controls(q12) @7;
+  CCNOT q12 controls(q2, q8) @8;
+  CNOT q8 controls(q12) @9;
+  CNOT q9 controls(q11) @10;
+  CCNOT q11 controls(q2, q9) @11;
+  CNOT q9 controls(q11) @12;
+}
+
+block M16 name "×² mod 31" qubits 13 steps 12 color 132 {
+  CNOT q8 controls(q9) @1;
+  CCNOT q9 controls(q3, q8) @2;
+  CNOT q8 controls(q9) @3;
+  CNOT q9 controls(q10) @4;
+  CCNOT q10 controls(q3, q9) @5;
+  CNOT q9 controls(q10) @6;
+  CNOT q10 controls(q11) @7;
+  CCNOT q11 controls(q3, q10) @8;
+  CNOT q10 controls(q11) @9;
+  CNOT q11 controls(q12) @10;
+  CCNOT q12 controls(q3, q11) @11;
+  CNOT q11 controls(q12) @12;
+}
+
+block M8 name "×⁸ mod 31" qubits 13 steps 12 color 172 {
+  CNOT q8 controls(q10) @1;
+  CCNOT q10 controls(q4, q8) @2;
+  CNOT q8 controls(q10) @3;
+  CNOT q11 controls(q12) @4;
+  CCNOT q12 controls(q4, q11) @5;
+  CNOT q11 controls(q12) @6;
+  CNOT q8 controls(q12) @7;
+  CCNOT q12 controls(q4, q8) @8;
+  CNOT q8 controls(q12) @9;
+  CNOT q9 controls(q11) @10;
+  CCNOT q11 controls(q4, q9) @11;
+  CNOT q9 controls(q11) @12;
+}
+
+block M4 name "×¹⁶ mod 31" qubits 13 steps 12 color 212 {
+  CNOT q11 controls(q12) @1;
+  CCNOT q12 controls(q5, q11) @2;
+  CNOT q11 controls(q12) @3;
+  CNOT q10 controls(q11) @4;
+  CCNOT q11 controls(q5, q10) @5;
+  CNOT q10 controls(q11) @6;
+  CNOT q9 controls(q10) @7;
+  CCNOT q10 controls(q5, q9) @8;
+  CNOT q9 controls(q10) @9;
+  CNOT q8 controls(q9) @10;
+  CCNOT q9 controls(q5, q8) @11;
+  CNOT q8 controls(q9) @12;
+}
+
+block M2 name "×⁴ mod 31" qubits 13 steps 12 color 252 {
+  CNOT q8 controls(q9) @1;
+  CCNOT q9 controls(q6, q8) @2;
+  CNOT q8 controls(q9) @3;
+  CNOT q10 controls(q12) @4;
+  CCNOT q12 controls(q6, q10) @5;
+  CNOT q10 controls(q12) @6;
+  CNOT q8 controls(q12) @7;
+  CCNOT q12 controls(q6, q8) @8;
+  CNOT q8 controls(q12) @9;
+  CNOT q9 controls(q11) @10;
+  CCNOT q11 controls(q6, q9) @11;
+  CNOT q9 controls(q11) @12;
+}
+
+block M1 name "×² mod 31" qubits 13 steps 12 color 332 {
+  CNOT q8 controls(q9) @1;
+  CCNOT q9 controls(q7, q8) @2;
+  CNOT q8 controls(q9) @3;
+  CNOT q9 controls(q10) @4;
+  CCNOT q10 controls(q7, q9) @5;
+  CNOT q9 controls(q10) @6;
+  CNOT q10 controls(q11) @7;
+  CCNOT q11 controls(q7, q10) @8;
+  CNOT q10 controls(q11) @9;
+  CNOT q11 controls(q12) @10;
+  CCNOT q12 controls(q7, q11) @11;
+  CNOT q11 controls(q12) @12;
+}
+
+block IQFT8A name "QFT†8 A" qubits 8 steps 32 color 284 {
+  CNOT q0 controls(q7) @1;
+  CNOT q7 controls(q0) @2;
+  CNOT q0 controls(q7) @3;
+  CNOT q1 controls(q6) @4;
+  CNOT q6 controls(q1) @5;
+  CNOT q1 controls(q6) @6;
+  CNOT q2 controls(q5) @7;
+  CNOT q5 controls(q2) @8;
+  CNOT q2 controls(q5) @9;
+  CNOT q3 controls(q4) @10;
+  CNOT q4 controls(q3) @11;
+  CNOT q3 controls(q4) @12;
+  H q7 @13;
+  CP(-pi/2) q6 controls(q7) @14;
+  H q6 @15;
+  CP(-pi/4) q5 controls(q7) @16;
+  CP(-pi/2) q5 controls(q6) @17;
+  H q5 @18;
+  CP(-pi/8) q4 controls(q7) @19;
+  CP(-pi/4) q4 controls(q6) @20;
+  CP(-pi/2) q4 controls(q5) @21;
+  H q4 @22;
+  CP(-pi/16) q3 controls(q7) @23;
+  CP(-pi/8) q3 controls(q6) @24;
+  CP(-pi/4) q3 controls(q5) @25;
+  CP(-pi/2) q3 controls(q4) @26;
+  H q3 @27;
+  CP(-pi/32) q2 controls(q7) @28;
+  CP(-pi/16) q2 controls(q6) @29;
+  CP(-pi/8) q2 controls(q5) @30;
+  CP(-pi/4) q2 controls(q4) @31;
+  CP(-pi/2) q2 controls(q3) @32;
+}
+
+block IQFT8B name "QFT†8 B" qubits 8 steps 16 color 306 {
+  H q2 @1;
+  CP(-pi/64) q1 controls(q7) @2;
+  CP(-pi/32) q1 controls(q6) @3;
+  CP(-pi/16) q1 controls(q5) @4;
+  CP(-pi/8) q1 controls(q4) @5;
+  CP(-pi/4) q1 controls(q3) @6;
+  CP(-pi/2) q1 controls(q2) @7;
+  H q1 @8;
+  CP(-pi/128) q0 controls(q7) @9;
+  CP(-pi/64) q0 controls(q6) @10;
+  CP(-pi/32) q0 controls(q5) @11;
+  CP(-pi/16) q0 controls(q4) @12;
+  CP(-pi/8) q0 controls(q3) @13;
+  CP(-pi/4) q0 controls(q2) @14;
+  CP(-pi/2) q0 controls(q1) @15;
+  H q0 @16;
+}
+
+block IQFT8 name "QFT†8" qubits 8 steps 2 color 295 {
+  use IQFT8A q0 @1;
+  use IQFT8B q0 @2;
+}
+
+main {
+  H q0 @1;
+  H q1 @1;
+  H q2 @1;
+  H q3 @1;
+  H q4 @1;
+  H q5 @1;
+  H q6 @1;
+  H q7 @1;
+  X q12 @1;
+  use M128 q0 @2;
+  use M64 q0 @3;
+  use M32 q0 @4;
+  use M16 q0 @5;
+  use M8 q0 @6;
+  use M4 q0 @7;
+  use M2 q0 @8;
+  use M1 q0 @9;
+  POST(0) q8 @10;
+  POST(0) q9 @10;
+  POST(0) q10 @10;
+  POST(0) q11 @10;
+  POST(1) q12 @10;
+  use IQFT8 q0 @11;
+}
+
+view step 11 block IQFT8 postselect(q8, q9, q10, q11, q12) state "00001" marginal(q0, q1, q2, q3, q4, q5, q6, q7);`;
 
     function gateLabel(type, value = 0) {
       if (type === "SDG") return "S†";
@@ -2471,8 +2708,8 @@ view step 5 block IQFT3;`;
     }
 
     function validateDsl(ast) {
-      if (ast.qubits < 1 || ast.qubits > 10) {
-        throw new DslError(ast.line, "Circuit qubits must be between 1 and 10.");
+      if (ast.qubits < 1 || ast.qubits > MAX_QUBITS) {
+        throw new DslError(ast.line, `Circuit qubits must be between 1 and ${MAX_QUBITS}.`);
       }
       if (ast.steps < 1 || ast.steps > MAX_STEPS) {
         throw new DslError(ast.line, `Circuit steps must be between 1 and ${MAX_STEPS}.`);
@@ -3879,6 +4116,11 @@ view step 5 block IQFT3;`;
       setStatus("N=15, a=2 の周期を逆QFTで抽出する回路を読み込みました。");
     }
 
+    function setPeriodFinding31Example() {
+      applyDslState(buildStateFromDsl(PERIOD_FINDING_31_EXAMPLE_DSL));
+      setStatus("N=31, a=2, r=5 の13-qubit周期探索回路を読み込みました。");
+    }
+
     function randomSu2Angles() {
       return {
         theta: 2 * Math.asin(Math.sqrt(Math.random())),
@@ -4795,11 +5037,16 @@ view step 5 block IQFT3;`;
         const bits = bitCount ? index.toString(2).padStart(bitCount, "0") : "";
         const row = document.createElement("div");
         row.className = "marginal-row";
-        row.setAttribute("aria-label", `${bits || "empty register"} probability ${probability.toFixed(6)}`);
+        row.setAttribute("aria-label", `${index}, ${bits || "empty register"} probability ${probability.toFixed(6)}`);
 
         const label = document.createElement("div");
         label.className = "marginal-label";
-        label.textContent = bitCount ? `|${bits}⟩` : "|⟩";
+        const integerLabel = document.createElement("span");
+        integerLabel.className = "marginal-index";
+        integerLabel.textContent = String(index);
+        const ketLabel = document.createElement("span");
+        ketLabel.textContent = bitCount ? `|${bits}⟩` : "|⟩";
+        label.append(integerLabel, ketLabel);
 
         const track = document.createElement("div");
         track.className = "marginal-track";
@@ -4830,6 +5077,8 @@ view step 5 block IQFT3;`;
       const previousScrollTop = el.stateVector.scrollTop;
       el.stateVector.innerHTML = "";
       el.stateVector.classList.toggle("dense", appState.qubits >= 7);
+      el.stateVector.classList.toggle("large", appState.qubits >= 11);
+      el.stateVector.classList.toggle("has-scroll-buffer", appState.qubits >= 5);
       el.stateVector.setAttribute("aria-label", `${appState.qubits}量子ビット、${state.re.length}成分の状態ベクトル`);
       const fragment = document.createDocumentFragment();
 
@@ -4843,11 +5092,16 @@ view step 5 block IQFT3;`;
         row.style.setProperty("--mag", mag.toFixed(5));
         row.style.setProperty("--min-bar", mag < 0.0005 ? "0px" : "3px");
         row.style.setProperty("--phase-color", phaseColor(real, imaginary));
-        row.setAttribute("aria-label", `|${basisLabel(index)}> amplitude ${mag.toFixed(3)}, coefficient ${formatComplex(real, imaginary)}`);
+        row.setAttribute("aria-label", `${index}, |${basisLabel(index)}> amplitude ${mag.toFixed(3)}, coefficient ${formatComplex(real, imaginary)}`);
 
         const label = document.createElement("div");
         label.className = "basis-label";
-        label.textContent = `|${basisLabel(index)}⟩`;
+        const integerLabel = document.createElement("span");
+        integerLabel.className = "basis-index";
+        integerLabel.textContent = String(index);
+        const ketLabel = document.createElement("span");
+        ketLabel.textContent = `|${basisLabel(index)}⟩`;
+        label.append(integerLabel, ketLabel);
 
         const track = document.createElement("div");
         track.className = "amplitude-track";
@@ -5806,8 +6060,8 @@ view step 5 block IQFT3;`;
     }
 
     document.getElementById("addQubitButton").addEventListener("click", () => {
-      if (appState.qubits >= 10) {
-        setStatus("状態ベクトル表示は 10 qubits までです。", true);
+      if (appState.qubits >= MAX_QUBITS) {
+        setStatus(`状態ベクトル表示は ${MAX_QUBITS} qubits までです。`, true);
         return;
       }
       appState.qubits += 1;
@@ -5912,6 +6166,7 @@ view step 5 block IQFT3;`;
     document.getElementById("groverExampleButton").addEventListener("click", setGroverExample);
     document.getElementById("randomExampleButton").addEventListener("click", setRandomCircuitExample);
     document.getElementById("periodExampleButton").addEventListener("click", setPeriodFindingExample);
+    document.getElementById("period31ExampleButton").addEventListener("click", setPeriodFinding31Example);
     document.getElementById("dslButton").addEventListener("click", () => {
       el.dslText.value = exportDsl();
       setDslStatus("Current circuit exported.");
